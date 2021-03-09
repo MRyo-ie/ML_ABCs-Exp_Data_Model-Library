@@ -10,59 +10,22 @@ from Experiment import (  # .Experiment,  .
         Basic_ExpTrain,
         Basic_ExpEvaluate,
 )
+from Experiment.example_datas import (
+    # 試しデータセット集
+    Example_DemandForecasting,
+    Example_AshraeEnergy, 
+)
 
 
 
-def demand_forecasting(args):
-    for i, arg in enumerate(args):
-        print("Path{} : {}".format(i, arg))
 
-    ###  train  ###
-    dataPPP = get_demand_forecasting_dataPPP(args[1])
-    dataPPP.X_train = dataPPP.X
-    dataPPP.Y_train = dataPPP.Y
-    # dataPPP.split_train_valid_test()   ## 今回は、すでに train/test に分かれているので不要。
-
-    ###  test  ###
-    dataPPP_test = get_demand_forecasting_dataPPP(args[2])
-    dataPPP.X_test = dataPPP_test.X
-    dataPPP.Y_test = dataPPP_test.Y
-    
-    exp_set = [
-        {
-            'exp_name' : "demand_forecasting",
-            'dataABC'  : Raw_Data(dataPPP, exist_valid=False, exist_Q=False),
-            'modelABC' : Prophet_Model(),
-        }, 
-    ]
-
+def main(exp_set, output_rootpath='.'):
     # Train
     exp_train = Basic_ExpTrain(exp_set)
     exp_train.exec()
     # Evaluate
     exp_eval = Basic_ExpEvaluate(exp_set)
-    exp_eval.exec(print_eval=True, is_output_csv=True, output_dirpath=dataPPP.dir_path)
-
-
-def get_demand_forecasting_dataPPP(path):
-    dataPPP = DataPPP()
-    dataPPP.load_data(path)
-
-    dataPPP.df = dataPPP.df.rename(
-            columns={'date': 'ds', 'sales': 'y'})
-    
-    # ストアID = 1, 商品ID = 1  に限定して予測してみる。
-    df = dataPPP.df
-    dataPPP.df = df[(df.store == 1) & (df.item == 1)]
-    # dataPPP.show_info()
-
-    # XQY に分解
-    dataPPP.split_XQY(
-        X_clms=['ds', 'store', 'item'],
-        Y_clms=['y'],
-        Q_clms=None)   # ['store', 'item']
-
-    return dataPPP
+    exp_eval.exec(print_eval=True, is_output_csv=True, output_rootpath=output_rootpath)
 
 
 
@@ -72,8 +35,27 @@ if __name__ == '__main__':
     #     lines.append(l.rstrip('\r\n'))
     
     args = sys.argv
-    demand_forecasting(args)
 
+    exp_set = []
+    models = [Prophet_Model(), ]  # LSTM_Model()
 
+    if args[1] == '-e':
+        if args[2] == 'demand_forecasting':
+            for m in models:
+                ex_dem_fore = Example_DemandForecasting()
+                limit_d=(6,36)
+                dataABC = ex_dem_fore.get_dataABC(
+                    limit_d
+                )
+                # dataABC.dataPPP.show_info()
+                exp_set.append(
+                    {
+                        'exp_name' : "demand_forecasting",
+                        'dataABC'  : dataABC,
+                        'modelABC' : m,
+                    }
+                )
+        if args[2] == 'ashrae_energy':
+            pass
 
-
+    main(exp_set, output_rootpath='')

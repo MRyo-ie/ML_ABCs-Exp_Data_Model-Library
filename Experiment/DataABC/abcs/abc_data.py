@@ -54,11 +54,6 @@ class DataPPP():
         if X_clms is not None or Y_clms is not None or Q_clms is not None:
             self.split_XQY(X_clms, Y_clms, Q_clms)
 
-    def split_XQY(self, X_clms: list = None, Y_clms: list = None, Q_clms: list = None):
-        self.X = pd.DataFrame(self.df, columns=X_clms)
-        self.Q = pd.DataFrame(self.df, columns=Q_clms)
-        self.Y = pd.DataFrame(self.df, columns=Y_clms)
-
     def show_info(self, df=None):
         """
         この辺の情報をもとに、データの前処理などを行う。
@@ -73,12 +68,26 @@ class DataPPP():
         print("\n[Info] ============= describe")
         print(df.describe(), '\n')
     
-    def split_train_valid_test(self, test_size=0.3, random_state=30):
-        self.X_train, self.X_test, self.Q_train, self.Q_test, self.Y_train, self.Y_test = \
-            train_test_split(
-                self.X.values, self.Q.values, self.Y.values, 
-                test_size=test_size, random_state=random_state, stratify=self.Y.values
-            )
+    def split_XQY(self, X_clms: list = None, Y_clms: list = None, Q_clms: list = None):
+        self.X = pd.DataFrame(self.df, columns=X_clms)
+        self.Q = pd.DataFrame(self.df, columns=Q_clms)
+        self.Y = pd.DataFrame(self.df, columns=Y_clms)
+
+    def split_train_valid_test(self, do_valid=True, do_test=True, valid_size=0.2, test_size=0.2, random_state=30, is_shuffle=True):
+        # 時系列データの場合は、分割、シャッフルはダメ。
+        # 考える必要あり。
+        if do_valid:
+            self.X_train, self.X_valid, self.Q_train, self.Q_valid, self.Y_train, self.Y_valid = \
+                train_test_split(
+                    self.X_train.values, self.Q_train.values, self.Y_train.values, 
+                    test_size=valid_size, random_state=random_state,
+                    shuffle=is_shuffle, stratify=self.Y_train.values)
+        if do_test:
+            self.X_train, self.X_test, self.Q_train, self.Q_test, self.Y_train, self.Y_test = \
+                train_test_split(
+                    self.X.values, self.Q.values, self.Y.values, 
+                    test_size=test_size, random_state=random_state, 
+                    shuffle=is_shuffle, stratify=self.Y.values)
         # self.X_train, self.X_test, self.Q_train, self.Q_test, self.Y_train, self.Y_test = \
         #     train_test_split(
         #         self.X.values, self.Q.values, self.Y.values, 

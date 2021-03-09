@@ -37,7 +37,7 @@ class Prophet_Model(ModelABC):
         # 画像に保存する。
         os.makedirs('result', exist_ok=True)
         figure = self.model.plot(fcst=forecast_df)
-        figure.savefig(fname='result/Prophet_result_1,1.png')
+        figure.savefig(fname='result/Prophet_result.png')
         return forecast_df['yhat']
 
     def predict_orgf(self, data):

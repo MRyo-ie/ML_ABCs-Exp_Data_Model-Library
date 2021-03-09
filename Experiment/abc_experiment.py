@@ -139,7 +139,7 @@ class Basic_ExpEvaluate(ExperimentABC):
             # }
         }
 
-    def exec(self, eval_metric=['MSE'], print_eval=True, is_output_csv=False, output_dirpath=''):
+    def exec(self, eval_metric=['MSE'], print_eval=True, is_output_csv=False, output_rootpath=''):
         """
         モデルを評価（Evaluate）する。
         """
@@ -151,17 +151,20 @@ class Basic_ExpEvaluate(ExperimentABC):
 
             result = model.predict(data_eval)
             y_df = data_eval['train']['Y']
-            # print(f'[Info] exp_name : {exp_name} ======================')
-            # print(f'\n【result】 : \n{result}')
-            # print(f"\n【y_df】 : \n{y_df}")
+            print(f'[Info] exp_name : {exp_name} ======================')
+            print(f'\n【result】 : \n{result}')
+            print(f"\n【y_df】 : \n{y_df.reset_index()}")
 
             if print_eval:
                 if 'MSE' in eval_metric:
                     print('[Info] MSE : ', mean_squared_error(data_eval['train']['Y'], result))
 
             if is_output_csv:
-                df = pd.DataFrame(result)
-                result_df = pd.concat([df, y_df], axis=1)
-                os.makedirs('result', exist_ok=True)
-                result_df.to_csv(osp.join('result', f'{model.name}_{exp_name}.csv'))
+                result_df = pd.concat([result, y_df['y']], axis=1)
+                # フォルダ作成
+                if output_rootpath == '':
+                    output_rootpath = exp['dataABC'].dataPPP.dir_path
+                out_dirpath = osp.join(output_rootpath, f'{model.name}_result')
+                os.makedirs(out_dirpath, exist_ok=True)
+                result_df.to_csv(osp.join(out_dirpath, f'{exp_name}.csv'))
 
