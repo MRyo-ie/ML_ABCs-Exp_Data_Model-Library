@@ -151,9 +151,9 @@ class Basic_ExpEvaluate(ExperimentABC):
 
             result = model.predict(data_eval)
             y_df = data_eval['train']['Y']
-            print(f'[Info] exp_name : {exp_name} ======================')
-            print(f'\n【result】 : \n{result}')
-            print(f"\n【y_df】 : \n{y_df.reset_index()}")
+            # print(f'[Info] exp_name : {exp_name} ======================')
+            # print(f'\n【result】 : \n{result}')
+            # print(f"\n【y_df】 : \n{y_df.reset_index()}")
 
             if print_eval:
                 if 'MSE' in eval_metric:

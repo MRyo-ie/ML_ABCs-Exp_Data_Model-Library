@@ -13,6 +13,8 @@ from Experiment import (  # .Experiment,  .
 from Experiment.example_datas import (
     # 試しデータセット集
     Example_DemandForecasting,
+    Example_RestaurantRevenue,
+    Example_RecruitRestaurant,
     Example_AshraeEnergy, 
 )
 
@@ -37,13 +39,13 @@ if __name__ == '__main__':
     args = sys.argv
 
     exp_set = []
-    models = [Prophet_Model(), ]  # LSTM_Model()
+    models = [Prophet_Model(), ]  # LightGBM_Model() LSTM_Model()
 
     if args[1] == '-e':
         if args[2] == 'demand_forecasting':
             for m in models:
                 ex_dem_fore = Example_DemandForecasting()
-                limit_d=(6,36)
+                limit_d=(9,11)
                 dataABC = ex_dem_fore.get_dataABC(
                     limit_d
                 )
@@ -55,6 +57,13 @@ if __name__ == '__main__':
                         'modelABC' : m,
                     }
                 )
+        if args[2] == 'restaurant_revenue':
+            # LightGBM_Model のやつ
+            # https://career-tech.biz/2019/10/16/python-kaggle-restaurant/
+            pass
+        if args[2] == 'recruit_restaurant':
+            # 平均値 のやつ
+            pass
         if args[2] == 'ashrae_energy':
             pass
 

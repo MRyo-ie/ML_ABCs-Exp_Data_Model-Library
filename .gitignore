@@ -165,4 +165,5 @@ dmypy.json
 .png
 result/
 
+*.zip
 
