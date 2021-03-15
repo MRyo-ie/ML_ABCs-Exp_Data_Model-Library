@@ -41,30 +41,32 @@ if __name__ == '__main__':
     exp_set = []
     models = [Prophet_Model(), ]  # LightGBM_Model() LSTM_Model()
 
-    if args[1] == '-e':
-        if args[2] == 'demand_forecasting':
-            for m in models:
-                ex_dem_fore = Example_DemandForecasting()
-                limit_d=(9,11)
-                dataABC = ex_dem_fore.get_dataABC(
-                    limit_d
-                )
-                # dataABC.dataPPP.show_info()
-                exp_set.append(
-                    {
-                        'exp_name' : "demand_forecasting",
-                        'dataABC'  : dataABC,
-                        'modelABC' : m,
-                    }
-                )
-        if args[2] == 'restaurant_revenue':
-            # LightGBM_Model のやつ
-            # https://career-tech.biz/2019/10/16/python-kaggle-restaurant/
-            pass
-        if args[2] == 'recruit_restaurant':
-            # 平均値 のやつ
-            pass
-        if args[2] == 'ashrae_energy':
-            pass
+    for arg in args[1:]:
+        for model in models:
+            if arg == 'demand_forecasting':
+                example_dataset = Example_DemandForecasting()
+                store_item_id_tuple = (9,11)
+                dataABC = example_dataset.get_dataABC(store_item_id_tuple)
+            elif arg == 'restaurant_revenue':
+                # LightGBM_Model のやつ
+                # https://career-tech.biz/2019/10/16/python-kaggle-restaurant/
+                example_dataset = Example_RestaurantRevenue()
+                dataABC = example_dataset.get_dataABC()
+            elif arg == 'recruit_restaurant':
+                # 平均値 のやつ
+                pass
+            elif arg == 'ashrae_energy':
+                pass
+            else:
+                raise NotImplementedError('[Error] そのデータセットは未実装です。')
+
+            # dataABC.dataPPP.show_info()
+            exp_set.append(
+                {
+                    'exp_name' : "demand_forecasting",
+                    'dataABC'  : dataABC,
+                    'modelABC' : model,
+                }
+            )
 
     main(exp_set, output_rootpath='')

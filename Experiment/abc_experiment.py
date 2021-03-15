@@ -157,10 +157,11 @@ class Basic_ExpEvaluate(ExperimentABC):
 
             if print_eval:
                 if 'MSE' in eval_metric:
-                    print('[Info] MSE : ', mean_squared_error(data_eval['train']['Y'], result))
+                    print(data_eval['train']['Y'])
+                    print('\n\n[Info] MSE : ', mean_squared_error(data_eval['train']['Y'], result))
 
             if is_output_csv:
-                result_df = pd.concat([result, y_df['y']], axis=1)
+                result_df = pd.concat([result, y_df['y0']], axis=1)
                 # フォルダ作成
                 if output_rootpath == '':
                     output_rootpath = exp['dataABC'].dataPPP.dir_path

@@ -15,17 +15,37 @@ class DataPPP():
     バラバラだったので、統一しやすいように規格化した。
     
     【目標】
-        datasetの前処理 を抽象化する。
+        1. datasetの前処理 を抽象化する。
             ・ X_train, X_val, Q_train, Q_val, A_train, At_val,  に統合・分割する。
             ・ データ構造ごとに、一般的な形でデータを整形する。
                 ・ .csv → pd.DataFrame
                 ・ json, xml → dict, list
                 ・ 画像 → 
                 ・ 文章 → 
+        2. カラム名を記号に変えて、モデルが読めるようにする。
+            ・ X
+                ・ dict_n
+                ・ num_n
+                ・ date_n
+                ・ img_n
+            ・ Q, Y
+                ・ y_n
     """
     def __init__(self):
-        # all
         self.dir_path = None
+        # メタ情報
+        self.clmns_dict = {
+            'X' : {
+                'date0' : None,
+            }, 
+            'Q' : {
+                'text0' : None,
+            }, 
+            'Y' : {
+                'num0' : None,
+            }, 
+        }
+        # all
         self.df = None
         self.X = None
         self.Q = None
@@ -43,13 +63,10 @@ class DataPPP():
         self.Q_test = None
         self.Y_test = None
     
-    def load_data(self, path: str, X_clms: list = None, Y_clms: list = None, Q_clms: list = None, n=None):
-        f_name, ext = osp.splitext(path)
-        self.dir_path = Path(f_name).resolve().parents[0]
-        if ext == '.csv':
-            self.df = pd.read_csv(path)
-        else:
-            raise Exception(f"[Error] 対応していないデータ形式です。: {ext}")
+    def load_data(self, path: str, 
+                        X_clms: list = None,  Y_clms: list = None,  Q_clms: list = None):  # , n=None
+        self.dir_path = Path(path).resolve().parents[0]
+        self.df = pd.read_csv(path)
 
         if X_clms is not None or Y_clms is not None or Q_clms is not None:
             self.split_XQY(X_clms, Y_clms, Q_clms)
@@ -60,15 +77,27 @@ class DataPPP():
         """
         if df is None:
             df = self.df
-        print("\n[Info] ============= head, tail")
-        print(df.head())
-        print(df.tail())
-        print("\n[Info] ============= info")
+        print("\n[Info] info =============================================")
         df.info()
-        print("\n[Info] ============= describe")
+        print("\n[Info] describe =========================================")
         print(df.describe(), '\n')
     
-    def split_XQY(self, X_clms: list = None, Y_clms: list = None, Q_clms: list = None):
+    def show_analyzed(self, df=None):
+        """
+        この辺の情報をもとに、データの前処理などを行う。
+        """
+        if df is None:
+            df = self.df
+        print("\n[Info] feature analyses (numerical, categorical) ========")
+        print(df.select_dtypes(exclude = [np.number,np.datetime64]).columns.tolist())
+        print(df.select_dtypes([np.number]).columns.tolist())
+        print("\n[Info] head, tail =======================================")
+        print(df.head())
+        print(df.tail())
+    
+    def split_XQY(self, X_clms: list = None, 
+                        Y_clms: list = None, 
+                        Q_clms: list = None):  # , n=None
         self.X = pd.DataFrame(self.df, columns=X_clms)
         self.Q = pd.DataFrame(self.df, columns=Q_clms)
         self.Y = pd.DataFrame(self.df, columns=Y_clms)
@@ -145,7 +174,10 @@ class DataABC(metaclass=ABCMeta):
         self.Y_train = dataPPP.Y_train.copy()
         # test
         self.X_test = dataPPP.X_test.copy()
-        self.Y_test = dataPPP.Y_test.copy()
+        if type(dataPPP.Y_test) == pd.DataFrame:
+            self.Y_test = dataPPP.Y_test.copy()
+        else:
+            self.Y_test = dataPPP.Y_test
 
         ##  Maximum  ##
         self.X_valid = None
