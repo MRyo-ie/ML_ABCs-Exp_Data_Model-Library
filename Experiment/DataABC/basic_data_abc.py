@@ -10,11 +10,18 @@ class Raw_Data(DataABC):
     def get_train(self):
         # X = self.X_train
         # y = self.Q_train * self.Y_train + (1 - self.Q_train) * (1 - self.Y_train)
-        return {
-            'X': self.X_train,
-            'Q': self.Q_train,
-            'Y': self.Y_train,
-        }
+            return {
+                'train' : {
+                    'X': self.X_train, 
+                    'Q': self.Q_train, 
+                    'Y': self.Y_train,
+                },
+                'valid' : { 
+                    'X': self.X_valid, 
+                    'Q': self.Q_valid, 
+                    'Y': self.Y_valid,
+                }
+            }
 
     def get_eval(self):
         return {

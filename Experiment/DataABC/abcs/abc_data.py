@@ -34,16 +34,11 @@ class DataPPP():
     def __init__(self):
         self.dir_path = None
         # メタ情報
-        self.clmns_dict = {
-            'X' : {
-                'date0' : None,
-            }, 
-            'Q' : {
-                'text0' : None,
-            }, 
-            'Y' : {
-                'num0' : None,
-            }, 
+        self.clmns_conv_dict = {}
+        self.clmns_XQA = {
+            'X' : None,
+            'Q' : None,
+            'Y' : None,
         }
         # all
         self.df = None
@@ -62,14 +57,16 @@ class DataPPP():
         self.X_test = None
         self.Q_test = None
         self.Y_test = None
+        # flags
+        self.is_exist_Q = True
     
     def load_data(self, path: str, 
-                        X_clms: list = None,  Y_clms: list = None,  Q_clms: list = None):  # , n=None
+                        X_clmns: list = None,  Y_clmns: list = None,  Q_clmns: list = None):  # , n=None
         self.dir_path = Path(path).resolve().parents[0]
         self.df = pd.read_csv(path)
 
-        if X_clms is not None or Y_clms is not None or Q_clms is not None:
-            self.split_XQY(X_clms, Y_clms, Q_clms)
+        if X_clmns is not None or Y_clmns is not None or Q_clmns is not None:
+            self.split_XQY(X_clmns, Y_clmns, Q_clmns)
 
     def show_info(self, df=None):
         """
@@ -95,36 +92,60 @@ class DataPPP():
         print(df.head())
         print(df.tail())
     
-    def split_XQY(self, X_clms: list = None, 
-                        Y_clms: list = None, 
-                        Q_clms: list = None):  # , n=None
-        self.X = pd.DataFrame(self.df, columns=X_clms)
-        self.Q = pd.DataFrame(self.df, columns=Q_clms)
-        self.Y = pd.DataFrame(self.df, columns=Y_clms)
+    def split_XQY(self, clmns_conv_dict,
+                        X_clmns: list = None, 
+                        Y_clmns: list = None, 
+                        Q_clmns: list = None):  # , n=None
+        self.clmns_conv_dict = clmns_conv_dict
+        self.clmns_XQA = {
+            'X' : X_clmns, 
+            'Q' : Q_clmns, 
+            'Y' : Y_clmns, 
+        }
+        # print(self.clmns_list)
+        # print(self.df)
+        self.X = pd.DataFrame(self.df, columns=X_clmns)
+        self.Q = pd.DataFrame(self.df, columns=Q_clmns)
+        self.Y = pd.DataFrame(self.df, columns=Y_clmns)
+        # print(self.X, self.Y)
+        if Q_clmns is None:
+            self.is_exist_Q = False
 
-    def split_train_valid_test(self, do_valid=True, do_test=True, valid_size=0.2, test_size=0.2, random_state=30, is_shuffle=True):
+    def split_train_valid_test(self, do_valid=True, do_test=False, valid_size=0.3, test_size=0.2, random_state=30, is_shuffle=True):
+        self.X_train = self.X.copy()
+        self.Y_train = self.Y.copy()
         # 時系列データの場合は、分割、シャッフルはダメ。
         # 考える必要あり。
         if do_valid:
-            self.X_train, self.X_valid, self.Q_train, self.Q_valid, self.Y_train, self.Y_valid = \
-                train_test_split(
-                    self.X_train.values, self.Q_train.values, self.Y_train.values, 
-                    test_size=valid_size, random_state=random_state,
-                    shuffle=is_shuffle, stratify=self.Y_train.values)
+            if self.is_exist_Q:
+                X_train, X_valid, Q_train, Q_valid, Y_train, Y_valid =  train_test_split(
+                        self.X_train, self.Q_train, self.Y_train, 
+                        test_size=valid_size, random_state=random_state, shuffle=is_shuffle)  # , stratify=self.Y_train
+            else:
+                X_train, X_valid, Y_train, Y_valid =  train_test_split(
+                        self.X_train, self.Y_train, 
+                        test_size=valid_size, random_state=random_state, shuffle=is_shuffle)  # , stratify=self.Y_train
+            self.X_valid, self.Y_valid = pd.DataFrame(X_valid), pd.DataFrame(Y_valid)
+            if self.is_exist_Q:
+                self.Q_valid = pd.DataFrame(Q_valid)
+            print(self.Y_valid)
         if do_test:
-            self.X_train, self.X_test, self.Q_train, self.Q_test, self.Y_train, self.Y_test = \
-                train_test_split(
-                    self.X.values, self.Q.values, self.Y.values, 
-                    test_size=test_size, random_state=random_state, 
-                    shuffle=is_shuffle, stratify=self.Y.values)
-        # self.X_train, self.X_test, self.Q_train, self.Q_test, self.Y_train, self.Y_test = \
-        #     train_test_split(
-        #         self.X.values, self.Q.values, self.Y.values, 
-        #         test_size=1 / 3, random_state=30, stratify=self.Y_train
-        #     )
-
-    def IPW(self):
-        pass
+            if self.is_exist_Q:
+                X_train, X_test, Q_train, Q_test, Y_train, Y_test =  train_test_split(
+                        self.X_train, self.Q_train, self.Y_train, 
+                        test_size=test_size, random_state=random_state, shuffle=is_shuffle)  # , stratify=self.Y_train
+            else:
+                X_train, X_test, Y_train, Y_test =  train_test_split(
+                        self.X_train, self.Y_train, 
+                        test_size=test_size, random_state=random_state, shuffle=is_shuffle)  # , stratify=self.Y_train
+            # self.X_train, self.X_test, self.Q_train, self.Q_test, self.Y_train, self.Y_test =  train_test_split(
+            #         self.X.values, self.Q.values, self.Y.values, 
+            #         test_size=1 / 3, random_state=30, stratify=self.Y_train
+            #     )
+            self.X_train, self.X_test, self.Y_train, self.Y_test = \
+                pd.DataFrame(X_train), pd.DataFrame(X_test), pd.DataFrame(Y_train), pd.DataFrame(Y_test)
+            if self.is_exist_Q:
+                self.Q_train, self.Q_test = pd.DataFrame(Q_train), pd.DataFrame(Q_test)
 
 
 
@@ -161,7 +182,11 @@ class DataABC(metaclass=ABCMeta):
             def get_eval(self):
                 ・・・
     """
-    def __init__(self, dataPPP: DataPPP, exist_valid=True, exist_Q=True):
+    def __init__(self, dataPPP: DataPPP, exist_Q=True):
+        # メタ情報
+        self.clmns_conv_dict = dataPPP.clmns_conv_dict
+        self.clmns_XQA = dataPPP.clmns_XQA
+
         # all
         self.dataPPP = dataPPP
         self.X = dataPPP.X.copy()
@@ -172,6 +197,9 @@ class DataABC(metaclass=ABCMeta):
         # train
         self.X_train = dataPPP.X_train.copy()
         self.Y_train = dataPPP.Y_train.copy()
+        # valid
+        self.X_valid = dataPPP.X_valid.copy()
+        self.Y_valid = dataPPP.Y_valid.copy()
         # test
         self.X_test = dataPPP.X_test.copy()
         if type(dataPPP.Y_test) == pd.DataFrame:
@@ -180,21 +208,14 @@ class DataABC(metaclass=ABCMeta):
             self.Y_test = dataPPP.Y_test
 
         ##  Maximum  ##
-        self.X_valid = None
-        self.Y_valid = None
         self.Q_train = None
         self.Q_test = None
         self.Q_valid = None
-        if exist_valid:
-            # valid
-            self.X_valid = dataPPP.X_valid.copy()
-            self.Y_valid = dataPPP.Y_valid.copy()
         if exist_Q:
             # Q
             self.Q_train = dataPPP.Q_train.copy()
-            self.Q_test = dataPPP.Q_test.copy()
-        if exist_valid and exist_Q:
             self.Q_valid = dataPPP.Q_valid.copy()
+            self.Q_test = dataPPP.Q_test.copy()
 
         # data の型など、問題がないかチェックする。（未）
         # self._check()
@@ -203,11 +224,17 @@ class DataABC(metaclass=ABCMeta):
     def get_train(self):  #=> dect or stream
         """
         例）
-            X = self.X_train
-            y = self.Q_train * self.Y_train + (1 - self.Q_train) * (1 - self.Y_train)
             return {
-                'X' : X,
-                'y' : y,
+                'train' : {
+                    'X': self.X_train, 
+                    'Q': self.Q_train, 
+                    'Y': self.Y_train,
+                },
+                'valid' : { 
+                    'X': self.X_valid, 
+                    'Q': self.Q_valid, 
+                    'Y': self.Y_valid,
+                }
             }
         """
         raise NotImplementedError()
@@ -221,6 +248,11 @@ class DataABC(metaclass=ABCMeta):
                     'X': self.X_train, 
                     'Q': self.Q_train, 
                     'Y': self.Y_train,
+                },
+                'valid' : { 
+                    'X': self.X_valid, 
+                    'Q': self.Q_valid, 
+                    'Y': self.Y_valid,
                 },
                 'test' : { 
                     'X': self.X_test, 

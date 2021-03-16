@@ -45,19 +45,19 @@ exp_eval.exec(print_eval=True, is_output_csv=True, output_rootpath=output_rootpa
 - **I/O 規格**： XQA（VQA形式の拡張。(X, Q) --Model-> A）
   - X : 説明変数(X)、画像(V)、問題文、...
     - column：
-      - Class_n  : 辞書。分類問題（カテゴリー、タイプ、グループ など）を想定。
+      - class_n  : 辞書。分類問題（カテゴリー、タイプ、グループ など）を想定。
         - データ型は、int。（カテゴリ番号）
           - str でも、自動で番号に変換される。
         - int（番号）をカテゴリに変換するための辞書（の集合）も同時に作る。
           - `dataABC.int_to_name(dict_num=n)`
-      - Num_n   : int, float など。回帰問題を想定。
-      - Date_n  : 日時。
+      - num_n   : int, float など。回帰問題を想定。
+      - date_n  : 日時。
         - データ形式は、元データをそのままコピーするので、元の .csv と同じになる。
-      - Stream_n : 時系列データ。
+      - stream_n : 時系列データ。
         - Prophet など、時系列（前後関係が重要な）データを扱いたい場合。
         - date など。（時間がない場合は、ID などを入れると良い）
-      - Text_n  : 文、文章
-      - Img_n   : 画像
+      - text_n  : 文、文章
+      - img_n   : 画像
         - データ型は str。（ファイルパス（.csv からの相対パス）のため）
   - Q : タスク名、質問文(Q)、コマンド
     - kaggle や [現実的なタスク](https://ainow.ai/2020/12/17/246963/) を見ながら研究開発中。

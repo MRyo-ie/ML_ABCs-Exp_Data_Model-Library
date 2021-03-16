@@ -7,7 +7,8 @@ from .DataABC.basic_data_abc import (
 )
 from .ModelABC.machine_learning import (
     ModelABC,
-    Prophet_Model
+    Prophet_Model,
+    LightGBM_Model
 )
 from .abc_experiment import (
     ExperimentABC,

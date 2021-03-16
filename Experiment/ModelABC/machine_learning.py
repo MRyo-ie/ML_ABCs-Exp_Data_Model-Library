@@ -1,6 +1,8 @@
 import os
 import pandas as pd
+import numpy as np
 
+import lightgbm as lgb
 from matplotlib import pyplot as plt
 from matplotlib.dates import MonthLocator, num2date
 from matplotlib.ticker import FuncFormatter
@@ -21,19 +23,24 @@ class Prophet_Model(ModelABC):
             model_instance = Prophet()
         super().__init__(model_instance)
         self.name = 'Prophet'
+    
+    def rename_clmns(self, dataABC):
+        y_name = dataABC.clmns_XQA['Y'][0]
+        return {'stream0': 'ds', y_name: 'y'}
 
-    def fit(self, datadict):
-        X = datadict['X']
-        Y = datadict['Y']
+    def fit(self, dataABC):
+        X = pd.concat([dataABC.X_train, dataABC.X_valid])
+        Y = pd.concat([dataABC.Y_train, dataABC.Y_valid])
         df = pd.concat([X, Y], axis=1)
         ## X.date0 -> ds,  Y.y0 -> y
-        df = df.rename(columns={'date0': 'ds', 'y0': 'y'})
+        df = df.rename(columns=self.rename_clmns(dataABC))
         # print(df)
         self.model.fit(df=df)
 
-    def predict(self, data):
-        future_df = data['train']['X']
-        future_df = future_df.rename(columns={'date0': 'ds', 'y0': 'y'})
+    def predict(self, dataABC):
+        df = pd.concat([dataABC.X_train, dataABC.X_valid])
+        future_df = df.rename(columns=self.rename_clmns(dataABC))
+        # print('\n\nfuture_df : \n', future_df)
         forecast_df = self.model.predict(df=future_df)
         # print('\n\n\n----------------------------- predicted.')
         # print(forecast_df.loc[:, ['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail())
@@ -47,6 +54,53 @@ class Prophet_Model(ModelABC):
         return super().predict_orgf(data)
 
 
+
+class LightGBM_Model(ModelABC):
+    """
+    ・ lightGBM（Gradient Boosting）
+        https://career-tech.biz/2019/10/16/python-kaggle-restaurant/
+    ・ 因果推論
+    """
+    def __init__(self, model_instance=None, 
+                    params = {
+                        'task' : 'train',
+                        'boosting_type' : 'gbdt',
+                        'objective' : 'regression',
+                        'metric' : {'l2'},
+                        'num_leaves' : 31,
+                        'learning_rate' : 0.1,
+                        'feature_fraction' : 0.9,
+                        'bagging_fraction' : 0.8,
+                        'bagging_freq': 5,
+                        'verbose' : 0,
+                        'n_jobs': 2
+                    }):
+        if model_instance is None:
+            model_instance = lgb
+        super().__init__(model_instance)
+        self.name = 'LightGBM'
+        self.params = params
+
+    def fit(self, dataABC):
+        dataABC.dataPPP.show_analyzed(dataABC.X_valid)
+        Xt, Xv = dataABC.X_train.drop('stream0', axis=1), dataABC.X_valid.drop('stream0', axis=1)
+        Yt, Yv = dataABC.Y_train, dataABC.Y_valid
+        lgb_train = lgb.Dataset(Xt, Yt)
+        lgb_valid = lgb.Dataset(Xv, Yv, reference=lgb_train)
+        self.model = lgb.train(
+                        self.params,
+                        lgb_train,
+                        num_boost_round=100,
+                        valid_sets=lgb_valid,
+                        early_stopping_rounds=10)
+
+    def predict(self, dataABC):
+        X_valid = dataABC.X_valid.drop('stream0', axis=1)
+        result = np.exp(self.model.predict(X_valid))
+        return pd.DataFrame(result, columns = ["pred"])
+
+    def predict_orgf(self, data):
+        return super().predict_orgf(data)
 
 
 

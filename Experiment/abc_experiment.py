@@ -114,10 +114,10 @@ class Basic_ExpTrain(ExperimentABC):
         ##<<--  train  -->>##
         for exp in self.experiments:
             # exp_name = exp['exp_name']
-            data_train = exp['dataABC'].get_train()
+            dataABC = exp['dataABC']
             model = exp['modelABC']
             
-            model.fit(data_train)
+            model.fit(dataABC)
 
 
 
@@ -146,22 +146,22 @@ class Basic_ExpEvaluate(ExperimentABC):
         ##<<--  evaluate  -->>##
         for exp in self.experiments:
             exp_name = exp['exp_name']
-            data_eval = exp['dataABC'].get_eval()
+            dataABC = exp['dataABC']
             model = exp['modelABC']
 
-            result = model.predict(data_eval)
-            y_df = data_eval['train']['Y']
+            result = model.predict(dataABC)
+            y_df = dataABC.Y_valid  #pd.concat([dataABC.Y_train, ])
             # print(f'[Info] exp_name : {exp_name} ======================')
             # print(f'\n【result】 : \n{result}')
             # print(f"\n【y_df】 : \n{y_df.reset_index()}")
 
             if print_eval:
                 if 'MSE' in eval_metric:
-                    print(data_eval['train']['Y'])
-                    print('\n\n[Info] MSE : ', mean_squared_error(data_eval['train']['Y'], result))
+                    print(result, y_df)
+                    print('\n\n[Info] MSE : ', mean_squared_error(y_df, result))
 
             if is_output_csv:
-                result_df = pd.concat([result, y_df['y0']], axis=1)
+                result_df = pd.concat([result, y_df.reset_index()], axis=1)
                 # フォルダ作成
                 if output_rootpath == '':
                     output_rootpath = exp['dataABC'].dataPPP.dir_path
@@ -169,3 +169,4 @@ class Basic_ExpEvaluate(ExperimentABC):
                 os.makedirs(out_dirpath, exist_ok=True)
                 result_df.to_csv(osp.join(out_dirpath, f'{exp_name}.csv'))
 
+        print("[Info] Experiment compleated!")
