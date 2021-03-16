@@ -2,10 +2,11 @@ import os
 import pandas as pd
 import numpy as np
 
-import lightgbm as lgb
+import lightgbm as lgbm
 from matplotlib import pyplot as plt
 from matplotlib.dates import MonthLocator, num2date
 from matplotlib.ticker import FuncFormatter
+from sklearn.model_selection import GridSearchCV
 from fbprophet import Prophet
 
 from .abcs.abc_model import ModelABC
@@ -34,12 +35,11 @@ class Prophet_Model(ModelABC):
         df = pd.concat([X, Y], axis=1)
         ## X.date0 -> ds,  Y.y0 -> y
         df = df.rename(columns=self.rename_clmns(dataABC))
-        # print(df)
         self.model.fit(df=df)
 
     def predict(self, dataABC):
-        df = pd.concat([dataABC.X_train, dataABC.X_valid])
-        future_df = df.rename(columns=self.rename_clmns(dataABC))
+        X = pd.concat([dataABC.X_train, dataABC.X_valid])
+        future_df = X.rename(columns=self.rename_clmns(dataABC))
         # print('\n\nfuture_df : \n', future_df)
         forecast_df = self.model.predict(df=future_df)
         # print('\n\n\n----------------------------- predicted.')
@@ -63,45 +63,106 @@ class LightGBM_Model(ModelABC):
     """
     def __init__(self, model_instance=None, 
                     params = {
-                        'task' : 'train',
-                        'boosting_type' : 'gbdt',
-                        'objective' : 'regression',
-                        'metric' : {'l2'},
-                        'num_leaves' : 31,
-                        'learning_rate' : 0.1,
-                        'feature_fraction' : 0.9,
-                        'bagging_fraction' : 0.8,
-                        'bagging_freq': 5,
-                        'verbose' : 0,
-                        'n_jobs': 2
+                        'learning_rate': [.01, .1, .5, .7, .9, .95, .99, 1],
+                        'boosting': ['gbdt'],
+                        'metric': ['l1'],
+                        'feature_fraction': [.3, .4, .5, 1],
+                        'num_leaves': [20],
+                        'min_data': [10],
+                        'max_depth': [10],
+                        'n_estimators': [10, 30, 50, 100]
                     }):
-        if model_instance is None:
-            model_instance = lgb
-        super().__init__(model_instance)
+        lgb = lgbm.LGBMRegressor()
+        self.lgb_regressor = GridSearchCV(lgb, params, scoring='neg_root_mean_squared_error', cv = 10, n_jobs = -1)
+        super().__init__(self.lgb_regressor)
         self.name = 'LightGBM'
         self.params = params
 
     def fit(self, dataABC):
-        dataABC.dataPPP.show_analyzed(dataABC.X_valid)
-        Xt, Xv = dataABC.X_train.drop('stream0', axis=1), dataABC.X_valid.drop('stream0', axis=1)
-        Yt, Yv = dataABC.Y_train, dataABC.Y_valid
-        lgb_train = lgb.Dataset(Xt, Yt)
-        lgb_valid = lgb.Dataset(Xv, Yv, reference=lgb_train)
-        self.model = lgb.train(
-                        self.params,
-                        lgb_train,
-                        num_boost_round=100,
-                        valid_sets=lgb_valid,
-                        early_stopping_rounds=10)
+        X = pd.concat([dataABC.X_train, dataABC.X_valid])   # .drop('stream0', axis=1)
+        Y = pd.concat([dataABC.Y_train, dataABC.Y_valid])
+        self.lgb_regressor.fit(X,Y)
+        self.model = lgbm.LGBMRegressor(
+                        learning_rate=self.lgb_regressor.best_params_["learning_rate"], 
+                        boosting='gbdt',  metric='l1', 
+                        feature_fraction=self.lgb_regressor.best_params_["feature_fraction"], 
+                        num_leaves=20, min_data=10, max_depth=10, 
+                        n_estimators=self.lgb_regressor.best_params_["n_estimators"], n_jobs=-1)
+        self.model.fit(X,Y)
+        # self.model = lgb.train(
+        #                 self.params,
+        #                 lgb_train,
+        #                 num_boost_round=100,
+        #                 valid_sets=lgb_valid,
+        #                 early_stopping_rounds=10)
+        print(f'Optimal lr: {self.lgb_regressor.best_params_["learning_rate"]}')
+        print(f'Optimal feature_fraction: {self.lgb_regressor.best_params_["feature_fraction"]}')
+        print(f'Optimal n_estimators: {self.lgb_regressor.best_params_["n_estimators"]}')
+        print(f'Best score: {self.lgb_regressor.best_score_}')
 
     def predict(self, dataABC):
-        X_valid = dataABC.X_valid.drop('stream0', axis=1)
-        result = np.exp(self.model.predict(X_valid))
+        X_valid = dataABC.X_valid
+        result = self.model.predict(X_valid)
         return pd.DataFrame(result, columns = ["pred"])
 
     def predict_orgf(self, data):
         return super().predict_orgf(data)
 
+
+
+
+# class RandomForest_Model(ModelABC):
+#     """
+#     ・ lightGBM（Gradient Boosting）
+#         https://career-tech.biz/2019/10/16/python-kaggle-restaurant/
+#     ・ 因果推論
+#     """
+#     def __init__(self, model_instance=None, 
+#                     params = {
+#                         'learning_rate': [.01, .1, .5, .7, .9, .95, .99, 1],
+#                         'boosting': ['gbdt'],
+#                         'metric': ['l1'],
+#                         'feature_fraction': [.3, .4, .5, 1],
+#                         'num_leaves': [20],
+#                         'min_data': [10],
+#                         'max_depth': [10],
+#                         'n_estimators': [10, 30, 50, 100]
+#                     }):
+#         lgb = lgbm.LGBMRegressor()
+#         self.lgb_regressor = GridSearchCV(lgb, params, scoring='neg_root_mean_squared_error', cv = 10, n_jobs = -1)
+#         super().__init__(self.lgb_regressor)
+#         self.name = 'LightGBM'
+#         self.params = params
+
+#     def fit(self, dataABC):
+#         X = pd.concat([dataABC.X_train, dataABC.X_valid])   # .drop('stream0', axis=1)
+#         Y = pd.concat([dataABC.Y_train, dataABC.Y_valid])
+#         self.lgb_regressor.fit(X,Y)
+#         self.model = lgbm.LGBMRegressor(
+#                         learning_rate=self.lgb_regressor.best_params_["learning_rate"], 
+#                         boosting='gbdt',  metric='l1', 
+#                         feature_fraction=self.lgb_regressor.best_params_["feature_fraction"], 
+#                         num_leaves=20, min_data=10, max_depth=10, 
+#                         n_estimators=self.lgb_regressor.best_params_["n_estimators"], n_jobs=-1)
+#         self.model.fit(X,Y)
+#         # self.model = lgb.train(
+#         #                 self.params,
+#         #                 lgb_train,
+#         #                 num_boost_round=100,
+#         #                 valid_sets=lgb_valid,
+#         #                 early_stopping_rounds=10)
+#         print(f'Optimal lr: {self.lgb_regressor.best_params_["learning_rate"]}')
+#         print(f'Optimal feature_fraction: {self.lgb_regressor.best_params_["feature_fraction"]}')
+#         print(f'Optimal n_estimators: {self.lgb_regressor.best_params_["n_estimators"]}')
+#         print(f'Best score: {self.lgb_regressor.best_score_}')
+
+#     def predict(self, dataABC):
+#         X_valid = dataABC.X_valid
+#         result = self.model.predict(X_valid)
+#         return pd.DataFrame(result, columns = ["pred"])
+
+#     def predict_orgf(self, data):
+#         return super().predict_orgf(data)
 
 
 

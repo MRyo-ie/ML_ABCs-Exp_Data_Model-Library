@@ -68,29 +68,6 @@ class DataPPP():
         if X_clmns is not None or Y_clmns is not None or Q_clmns is not None:
             self.split_XQY(X_clmns, Y_clmns, Q_clmns)
 
-    def show_info(self, df=None):
-        """
-        この辺の情報をもとに、データの前処理などを行う。
-        """
-        if df is None:
-            df = self.df
-        print("\n[Info] info =============================================")
-        df.info()
-        print("\n[Info] describe =========================================")
-        print(df.describe(), '\n')
-    
-    def show_analyzed(self, df=None):
-        """
-        この辺の情報をもとに、データの前処理などを行う。
-        """
-        if df is None:
-            df = self.df
-        print("\n[Info] feature analyses (numerical, categorical) ========")
-        print(df.select_dtypes(exclude = [np.number,np.datetime64]).columns.tolist())
-        print(df.select_dtypes([np.number]).columns.tolist())
-        print("\n[Info] head, tail =======================================")
-        print(df.head())
-        print(df.tail())
     
     def split_XQY(self, clmns_conv_dict,
                         X_clmns: list = None, 
@@ -102,12 +79,9 @@ class DataPPP():
             'Q' : Q_clmns, 
             'Y' : Y_clmns, 
         }
-        # print(self.clmns_list)
-        # print(self.df)
         self.X = pd.DataFrame(self.df, columns=X_clmns)
         self.Q = pd.DataFrame(self.df, columns=Q_clmns)
         self.Y = pd.DataFrame(self.df, columns=Y_clmns)
-        # print(self.X, self.Y)
         if Q_clmns is None:
             self.is_exist_Q = False
 
@@ -128,7 +102,7 @@ class DataPPP():
             self.X_valid, self.Y_valid = pd.DataFrame(X_valid), pd.DataFrame(Y_valid)
             if self.is_exist_Q:
                 self.Q_valid = pd.DataFrame(Q_valid)
-            print(self.Y_valid)
+            # print(f'\n[Info] self.Y_valid : \n{self.Y_valid}')
         if do_test:
             if self.is_exist_Q:
                 X_train, X_test, Q_train, Q_test, Y_train, Y_test =  train_test_split(

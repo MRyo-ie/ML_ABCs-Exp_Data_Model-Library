@@ -1,4 +1,6 @@
 
+from datetime import date, datetime
+import numpy as np
 import os.path as osp
 from . import (  # .Experiment,  .
     # DataABC
@@ -27,11 +29,6 @@ class Example_KaggleTemplate():
             'Y' : None,
         }
 
-    def analyze_dataset(self):
-        self.dataPPP.show_analyzed()
-        self.dataPPP.show_info()
-        # 確認して、XQA カラムリストを作る。→ initialize_dataPPP() で読み込む
-    
     def initialize_dataPPP(self, 
             clmns_conv_dict={},# = {
                 # 'date':'stream0', 
@@ -136,7 +133,7 @@ class Example_RestaurantRevenue(Example_KaggleTemplate):
 
     def initialize_dataPPP(self, 
             clmns_conv_dict = {
-                'Open Date':'date0', 'City':'class0', 'City Group':'class1', 'Type':'class2',
+                'Age':'date0', 'City':'class0', 'City Group':'class1', 'Type':'class2',  # 'Open Date':'date0'
                 'P1':'num1', 'P2':'num2', 'P3':'num3', 'P4':'num4', 'P5':'num5', 'P6':'num6', 'P7':'num7', 'P8':'num8', 'P9':'num9', 'P10':'num10', 
                 'P11':'num11', 'P12':'num12', 'P13':'num13', 'P14':'num14', 'P15':'num15', 'P16':'num16', 'P17':'num17', 'P18':'num18', 'P19':'num19', 'P20':'num20', 
                 'P21':'num21', 'P22':'num22', 'P23':'num23', 'P24':'num24', 'P25':'num25', 'P26':'num26', 'P27':'num27', 'P28':'num28', 'P29':'num29', 'P30':'num30', 
@@ -154,95 +151,116 @@ class Example_RestaurantRevenue(Example_KaggleTemplate):
         ):
         super().initialize_dataPPP(clmns_conv_dict, clmns_XQA, is_shuffle)
 
-
-
-
-class Example_RecruitRestaurant():
-    """https://www.codexa.net/kaggle-recruit-restaurant-visitor-forecasting-handson/#Kaggle-3
-    平均値のやつ。
-    """
-    def __init__(self):
-        self.train_path = osp.join(data_root_dir, 'recruit_restaurant', 'train.csv')
-        self.test_path = osp.join(data_root_dir, 'recruit_restaurant', 'test.csv')
-
-    def get_dataPPP(self):
-        ###  train  ###
-        self.dataPPP = self.build_dataPPP(self.train_path)
-        self.dataPPP.X_train = self.dataPPP.X
-        self.dataPPP.Y_train = self.dataPPP.Y
-        # self.dataPPP.split_train_valid_test()   ## 今回は、すでに train/test に分かれているので不要。
-
-        ###  test  ###
-        dataPPP_test = self.build_dataPPP(self.test_path)
-        self.dataPPP.X_test = dataPPP_test.X
-        self.dataPPP.Y_test = dataPPP_test.Y
-
-        return Raw_Data(self.dataPPP, exist_valid=False, exist_Q=False)
-
-    def build_dataPPP(self, path, store_item_id_tuple=(3,2)):
-        self.dataPPP = DataPPP()
-        self.dataPPP.load_data(path)
-
-        self.dataPPP.df = self.dataPPP.df.rename(
-                columns={'date': 'ds', 'sales': 'y0'})
-        
-        # ストアID = 1, 商品ID = 1  に限定して予測してみる。
-        df = self.dataPPP.df
-        self.dataPPP.df = df[(df.store == store_item_id_tuple[0]) & (df.item == store_item_id_tuple[1])]
-        # self.dataPPP.show_info()
-
+    def build_dataPPP(self, path):
+        dataPPP = DataPPP()
+        dataPPP.load_data(path)
+        # 値の調整
+        dataPPP.df['Age'] = dataPPP.df['Open Date'].apply(self.calculate_age)
+        try:
+            dataPPP.df['revenue'] = np.log1p(dataPPP.df['revenue'])
+            print(dataPPP.df['revenue'])
+        except:
+            pass
+        dataPPP.df = dataPPP.df.rename(columns=self.clmns_conv_dict)
         # XQY に分解
-        self.dataPPP.split_XQY(
+        dataPPP.split_XQY(
             self.clmns_conv_dict,
-            X_clmns=['ds', 'store', 'item'],
-            Y_clmns=['y0'],
-            Q_clmns=None)   # ['store', 'item']
+            X_clmns=self.clmns_XQA['X'],
+            Y_clmns=self.clmns_XQA['Y'],
+            Q_clmns=self.clmns_XQA['Q'])
+        return dataPPP
 
-        return self.dataPPP
+    def calculate_age(self, born):
+        born = datetime.strptime(born, "%m/%d/%Y").date()
+        today = date.today()
+        return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
 
 
+# class Example_RecruitRestaurant(Example_KaggleTemplate):
+#     """https://www.codexa.net/kaggle-recruit-restaurant-visitor-forecasting-handson/#Kaggle-3
+#     平均値のやつ。
+#     """
+#     def __init__(self):
+#         super().__init__(
+#             osp.join(data_root_dir, 'recruit_restaurant', 'train.csv'),
+#             osp.join(data_root_dir, 'recruit_restaurant', 'test.csv')
+#         )
 
+#     def get_dataPPP(self):
+#         ###  train  ###
+#         self.dataPPP = self.build_dataPPP(self.train_path)
+#         self.dataPPP.X_train = self.dataPPP.X
+#         self.dataPPP.Y_train = self.dataPPP.Y
+#         # self.dataPPP.split_train_valid_test()   ## 今回は、すでに train/test に分かれているので不要。
 
+#         ###  test  ###
+#         dataPPP_test = self.build_dataPPP(self.test_path)
+#         self.dataPPP.X_test = dataPPP_test.X
+#         self.dataPPP.Y_test = dataPPP_test.Y
 
+#         return Raw_Data(self.dataPPP, exist_valid=False, exist_Q=False)
 
-class Example_AshraeEnergy():
-    def __init__(self):
-        self.train_path = osp.join(data_root_dir, 'ashrae-energy', 'train.csv')
-        self.test_path = osp.join(data_root_dir, 'ashrae-energy', 'test.csv')
+#     def build_dataPPP(self, path, store_item_id_tuple=(3,2)):
+#         self.dataPPP = DataPPP()
+#         self.dataPPP.load_data(path)
 
-    def get_dataPPP(self):
-        ###  train  ###
-        self.dataPPP = self.build_dataPPP(self.train_path)
-        self.dataPPP.X_train = self.dataPPP.X
-        self.dataPPP.Y_train = self.dataPPP.Y
-        # self.dataPPP.split_train_valid_test()   ## 今回は、すでに train/test に分かれているので不要。
-
-        ###  test  ###
-        dataPPP_test = self.build_dataPPP(self.test_path)
-        self.dataPPP.X_test = dataPPP_test.X
-        self.dataPPP.Y_test = dataPPP_test.Y
-
-        return Raw_Data(self.dataPPP, exist_valid=False, exist_Q=False)
-
-    def build_dataPPP(self, path, store_item_id_tuple=(3,2)):
-        self.dataPPP = DataPPP()
-        self.dataPPP.load_data(path)
-
-        self.dataPPP.df = self.dataPPP.df.rename(
-                columns={'date': 'ds', 'sales': 'y0'})
+#         self.dataPPP.df = self.dataPPP.df.rename(
+#                 columns={'date': 'ds', 'sales': 'y0'})
         
-        # ストアID = 1, 商品ID = 1  に限定して予測してみる。
-        df = self.dataPPP.df
-        self.dataPPP.df = df[(df.store == store_item_id_tuple[0]) & (df.item == store_item_id_tuple[1])]
-        # self.dataPPP.show_info()
+#         # ストアID = 1, 商品ID = 1  に限定して予測してみる。
+#         df = self.dataPPP.df
+#         self.dataPPP.df = df[(df.store == store_item_id_tuple[0]) & (df.item == store_item_id_tuple[1])]
+#         # self.dataPPP.show_info()
 
-        # XQY に分解
-        self.dataPPP.split_XQY(
-            self.clmns_conv_dict,
-            X_clmns=['ds', 'store', 'item'],
-            Y_clmns=['y0'],
-            Q_clmns=None)   # ['store', 'item']
+#         # XQY に分解
+#         self.dataPPP.split_XQY(
+#             self.clmns_conv_dict,
+#             X_clmns=['ds', 'store', 'item'],
+#             Y_clmns=['y0'],
+#             Q_clmns=None)   # ['store', 'item']
 
-        return self.dataPPP
+#         return self.dataPPP
+
+
+
+# class Example_AshraeEnergy(Example_KaggleTemplate):
+#     def __init__(self):
+#         self.train_path = osp.join(data_root_dir, 'ashrae-energy', 'train.csv')
+#         self.test_path = osp.join(data_root_dir, 'ashrae-energy', 'test.csv')
+
+#     def get_dataPPP(self):
+#         ###  train  ###
+#         self.dataPPP = self.build_dataPPP(self.train_path)
+#         self.dataPPP.X_train = self.dataPPP.X
+#         self.dataPPP.Y_train = self.dataPPP.Y
+#         # self.dataPPP.split_train_valid_test()   ## 今回は、すでに train/test に分かれているので不要。
+
+#         ###  test  ###
+#         dataPPP_test = self.build_dataPPP(self.test_path)
+#         self.dataPPP.X_test = dataPPP_test.X
+#         self.dataPPP.Y_test = dataPPP_test.Y
+
+#         return Raw_Data(self.dataPPP, exist_valid=False, exist_Q=False)
+
+#     def build_dataPPP(self, path, store_item_id_tuple=(3,2)):
+#         self.dataPPP = DataPPP()
+#         self.dataPPP.load_data(path)
+
+#         self.dataPPP.df = self.dataPPP.df.rename(
+#                 columns={'date': 'ds', 'sales': 'y0'})
+        
+#         # ストアID = 1, 商品ID = 1  に限定して予測してみる。
+#         df = self.dataPPP.df
+#         self.dataPPP.df = df[(df.store == store_item_id_tuple[0]) & (df.item == store_item_id_tuple[1])]
+#         # self.dataPPP.show_info()
+
+#         # XQY に分解
+#         self.dataPPP.split_XQY(
+#             self.clmns_conv_dict,
+#             X_clmns=['ds', 'store', 'item'],
+#             Y_clmns=['y0'],
+#             Q_clmns=None)   # ['store', 'item']
+
+#         return self.dataPPP
 

@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import os
 import os.path as osp
+import numpy as np
 import pandas as pd
 
 from .ModelABC.abcs.abc_model import ModelABC
@@ -139,7 +140,7 @@ class Basic_ExpEvaluate(ExperimentABC):
             # }
         }
 
-    def exec(self, eval_metric=['MSE'], print_eval=True, is_output_csv=False, output_rootpath=''):
+    def exec(self, eval_metric=['RMSE'], print_eval=True, is_output_csv=False, output_rootpath=''):
         """
         モデルを評価（Evaluate）する。
         """
@@ -156,9 +157,10 @@ class Basic_ExpEvaluate(ExperimentABC):
             # print(f"\n【y_df】 : \n{y_df.reset_index()}")
 
             if print_eval:
-                if 'MSE' in eval_metric:
+                if 'RMSE' in eval_metric:
                     print(result, y_df)
-                    print('\n\n[Info] MSE : ', mean_squared_error(y_df, result))
+                    print('\n\n[Info] MSE  : ', mean_squared_error(y_df, result))
+                    print('\n\n[Info] RMSE : ', np.sqrt(mean_squared_error(y_df, result)))
 
             if is_output_csv:
                 result_df = pd.concat([result, y_df.reset_index()], axis=1)
