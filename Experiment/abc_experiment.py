@@ -69,9 +69,9 @@ class ExperimentABC(metaclass=ABCMeta):
 
     def add(self, exp_name:str, data:DataABC, model:ModelABC):
         if not issubclass(type(model), ModelABC):
-            raise Exception('[Error] ModelABC を継承していないモデルが入力されました。')
+            raise Exception('[Error] ModelABC を継承していないモデルが入力されました。', type(model))
         if not issubclass(type(data), DataABC):
-            raise Exception('[Error] DataABC を継承していないモデルが入力されました。')
+            raise Exception('[Error] DataABC を継承していないモデルが入力されました。:', type(data))
 
         self.experiments.append({
             'exp_name' : exp_name,
@@ -139,6 +139,7 @@ class Basic_ExpEvaluate(ExperimentABC):
             #     'score': {'train': None, 'test': None}, 
             # }
         }
+        self.results = {}
 
     def exec(self, eval_metric=['RMSE'], print_eval=True, is_output_csv=False, output_rootpath=''):
         """

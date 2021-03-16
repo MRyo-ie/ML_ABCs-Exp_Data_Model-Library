@@ -8,4 +8,5 @@ seaborn
 
 fbprophet
 lightgbm
+xgboost
 

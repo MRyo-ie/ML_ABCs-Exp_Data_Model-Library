@@ -8,6 +8,8 @@ from Experiment import (  # .Experiment,  .
     # ModelABC
         Prophet_Model,
         LightGBM_Model,
+        RandomForest_Model,
+        XGBoost_Model,
     # ExpermentABC
         Basic_ExpTrain,
         Basic_ExpEvaluate,
@@ -42,8 +44,10 @@ if __name__ == '__main__':
 
     exp_set = []
     models = [
-        Prophet_Model(), 
-        LightGBM_Model()
+        # Prophet_Model(), 
+        LightGBM_Model(),
+        RandomForest_Model(),
+        XGBoost_Model(),
     ]  # LSTM_Model()
 
     dataPPP = None

@@ -12,7 +12,9 @@ from .DataABC.basic_data_abc import (
 from .ModelABC.machine_learning import (
     ModelABC,
     Prophet_Model,
-    LightGBM_Model
+    LightGBM_Model,
+    RandomForest_Model,
+    XGBoost_Model,
 )
 
 from .abc_experiment import (
