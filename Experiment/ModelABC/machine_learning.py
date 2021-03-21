@@ -180,12 +180,13 @@ class XGBoost_Model(ModelABC):
         self.params = params
 
     def fit(self, dataABC):
+        # print(dataABC.X_valid.head())
         X = pd.concat([dataABC.X_train, dataABC.X_valid]).to_numpy()
         Y = pd.concat([dataABC.Y_train, dataABC.Y_valid]).to_numpy().ravel()
         print(Y.shape)
         # import sys
         # sys.exit()
-        self.self.xgb_regressor.fit(X, Y)
+        self.xgb_regressor.fit(X, Y)
     
         self.model = XGBRegressor(
                         learning_rate=self.xgb_regressor.best_params_["learning_rate"], 
